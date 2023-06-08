@@ -15,8 +15,8 @@ Proposed tasks:
 - the mutation of social preference follows a given probablility distribution
 
 
-## step 3:
-- The big model captures the statistic of the collaborative agents
+## Step 3:
 - Run the program to a certain number of rounds
+- The big model captures the statistic of the collaborative agents
 - Summarize statistical data, draw corresponding graphs and perform analysis
 
