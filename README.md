@@ -23,5 +23,5 @@ Proposed tasks:
 ## Step 4:
 - further modification if time permits
 
-## Step 5: (15.06.2023)
+## Step 5: (by 15.06.2023)
 - Final report 
