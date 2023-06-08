@@ -12,4 +12,12 @@ Step 2:
 -randomly die out 5% population (5 agents)
 -refill 5 new agents who are the offsprings of the agents with the highest utility function values in the previous round
 -the social preference of the offspring has 5% probability to mutate
+-the mutation of social preference follows a given probablility distribution
+
+Step3:
+-Run the program to a certain number of rounds
+-Summarize statistical data, draw corresponding graphs and perform analysis 
+
+Step4:
+
 
