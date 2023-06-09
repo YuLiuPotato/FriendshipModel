@@ -6,7 +6,7 @@ Proposed tasks:
 ## Step 1: (by 09.06.2023)
 - 20*20 grid, 25% population (100 agents)
 - strategies of each agent: social/non-social
-- Utility function = (1-s)*Pi + s*Pj (i - agent itself, j - the other agent that this agent is interacting with, s - social preference, Pi - payoff function of i, Pj - payoff j gets by interacting with i)
+- Utility function = (1-s)*Pi + s*Pj (i - agent itself, j - the other agent that this agent is interacting with, s - social preference or the probability of being social, Pi - payoff function of i, Pj - payoff j gets by interacting with i)
 
 ## Step 2: (by 11.06.2023)
 - randomly die out 5% population (5 agents)
