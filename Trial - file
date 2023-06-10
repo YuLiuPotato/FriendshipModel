@@ -1,0 +1,35 @@
+import mesa
+import numpy as np
+
+
+class MoneyAgent(mesa.Agent):
+    """An agent with fixed initial wealth."""
+
+    def __init__(self, unique_id, model):
+        super().__init__(unique_id, model)
+        self.wealth = 0.5  # scoial preference s, the initial value is 0.5 or 50% probability of being social or non-social
+        T = 1.5  # temptation 
+        R = 1.1  # reward
+        P = 0.8  # punishment
+        S = 0.5  # sucker's payoff, the above four values are subject to change
+
+
+    # currently assuming agents do not move - however, the move of some agents with mutation of their "s" can be seen as dying out of those agents and the reproduction of the new ones; consider in the later stage
+    # def move(self):
+    #     possible_steps = self.model.grid.get_neighborhood(
+    #         self.pos, moore=True, include_center=False
+    #     )
+    #     new_position = self.random.choice(possible_steps)
+    #     self.model.grid.move_agent(self, new_position)
+
+    def payoff(self):
+        cellmates = self.model.grid.get_neighborhood(self.pos,moore=True,include_center=False)
+        for i in cellmates:
+            social_preference_to_i = np.random.choice((social,nonsocial),(self.wealth,1-self.wealth))
+            other_agent.wealth += 1
+            self.wealth -= 1
+
+    def step(self):
+        self.move()
+        if self.wealth > 0:
+            self.give_money()
