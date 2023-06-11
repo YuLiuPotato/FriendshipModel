@@ -14,13 +14,13 @@ def agent_portrayal(agent):
     else:
         portrayal["Color"] = "grey"
         portrayal["Layer"] = 1
-        portrayal["r"] = 0.2
+    portrayal["r"] = agent.social
     return portrayal
 
 
-grid = mesa.visualization.CanvasGrid(agent_portrayal, 20, 20, 500, 500)
+grid = mesa.visualization.CanvasGrid(agent_portrayal, 30, 30, 600, 600)
 server = mesa.visualization.ModularServer(
-    PeopleModel, [grid], "Money Model", {"N": 100, "width": 20, "height": 20}
+    PeopleModel, [grid], "Money Model", {"N": 200, "width": 30, "height": 30}
 )
 server.port = 8521  # The default
 server.launch()

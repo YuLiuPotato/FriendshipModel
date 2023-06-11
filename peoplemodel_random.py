@@ -14,7 +14,7 @@ class PeopleAgent(mesa.Agent):
 
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
-        self.social = 0.5  # scoial preference s, the initial value is 0.5 or 50% probability of being social or non-social
+        self.social = 0.2  # scoial preference s, the initial value is 0.5 or 50% probability of being social or non-social
         self.make_friend = 1 # the actural behavior [0,1] isolated vs outgoing
         self.utility_social = 0 #
         self.utility_not_social = 0 #
@@ -24,7 +24,6 @@ class PeopleAgent(mesa.Agent):
         R = 1.1  # reward
         P = 0.8  # punishment
         S = 0.5  # sucker's payoff, the above four values are subject to change
-
         '''
     def init_property(self,social=0.5,make_friend=1,utility_social=0,utility_not_social=0):
         self.social = social  # scoial preference s, the initial value is 0.5 or 50% probability of being social or non-social
@@ -41,12 +40,22 @@ class PeopleAgent(mesa.Agent):
     #     self.model.grid.move_agent(self, new_position)
 
     def payoff(self):
-        cellmates = self.model.grid.get_neighbors(self.pos,moore=True)
-        if cellmates == None:
+        def no_cellmates(self):
             self.utility_not_social = 0
             self.utility_social =1
             self.make_friend =1
             return
+        #compatability with multiGrid
+        try:
+            cellmates = self.model.grid.get_neighbors(self.pos,moore=True,include_center=False)
+        except TypeError:
+            cellmates = None
+            no_cellmates(self)
+            return
+        finally:
+            if(cellmates==None):
+                no_cellmates(self)
+                return
         _utility_not_social =0
         _utility_social =0
         for i in cellmates:
@@ -74,29 +83,39 @@ class PeopleAgent(mesa.Agent):
         #print(min(self.utility_social, self.utility_not_social))
         if(min(self.utility_social,self.utility_not_social)<4):
             self.move()
-        self.change_social()
+            self.change_social("Hurt")
     ## move the agent to random place
     def move(self):
         possible_space = self.model.grid.get_neighborhood(self.pos,moore=True,include_center=False)
         new_position = self.random.choice(possible_space)
+        # try if it is not empty for singleGrid
+        while not self.model.grid.is_cell_empty(new_position) and isinstance(self.model.grid, mesa.space.SingleGrid):
+            new_position = self.random.choice(possible_space)
         self.model.grid.move_agent(self,new_position)
     ##TODO: what happen if he is unhappy
-    def change_social(self):
-        return
+    def change_social(self,mode):
+        if(mode =="No_change"):
+            return
+        elif(mode =="Random"):
+            self.social = random.random()
+        # people got negative reward
+        elif(mode =="Hurt"):
+            if(self.make_friend >0.5):
+                self.social -= 0.05
+            else:
+                self.social +=0.05
 class PeopleModel(mesa.Model):
 
     def __init__(self,N,width,height):
         self.num_agents = N
-        self.grid = mesa.space.MultiGrid(width,height,True)
+        self.grid = mesa.space.SingleGrid(width,height,True)
+        #self.grid = mesa.space.MultiGrid(width, height, True)
         self.schedule = mesa.time.RandomActivation(self)
         self.init_agent()
     def init_agent(self):
         for i in range(self.num_agents):
             a = PeopleAgent(i,self)
             self.schedule.add(a)
-
-            x = self.random.randrange(self.grid.width)
-            y = self.random.randrange(self.grid.height)
-            self.grid.place_agent(a,(x,y))
+            self.grid.place_agent(a,self.grid.find_empty()) # find a empty cell
     def step(self):
         self.schedule.step()
