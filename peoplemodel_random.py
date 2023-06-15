@@ -78,6 +78,7 @@ class PeopleAgent(mesa.Agent):
         self.utility_social = 0 #
         self.utility_not_social = 0 #
         self.bias =0 # bad mood / good mod affect his utilization
+        self.threshold_of_hurt =4
         self.payoff_f = Payoff_f()
         self.friendship = {} # this is the friends list
         self.potential_friendship ={}
@@ -178,7 +179,7 @@ class PeopleAgent(mesa.Agent):
             else:
                 # if one fail to move, he become unfriendly/ he accumulate bias
                 self.social-=0.02
-        elif isinstance(self.model.grid, mesa.space.SingleGrid):
+        elif isinstance(self.model.grid, mesa.space.MultiGrid):
             new_position = self.random.choice(possible_space)
             self.model.grid.move_agent(self, new_position)
 
@@ -206,10 +207,11 @@ class PeopleModel(mesa.Model):
 
     def __init__(self,N,width,height):
         self.num_agents = N
-        self.grid = mesa.space.SingleGrid(width,height,True)
-        #self.grid = mesa.space.MultiGrid(width, height, True)
+        #self.grid = mesa.space.SingleGrid(width,height,True)
+        self.grid = mesa.space.MultiGrid(width, height, True)
         self.schedule = mesa.time.RandomActivation(self)
         self.init_agent()
+        self.step_num = 0
         self.datacollector = mesa.DataCollector(
             model_reporters={"average_social_utility": average_social_utility, "average_non_soc_utility":average_non_soc_utility,
                              "average_social": average_social,"count_make_friend": count_make_friend},
@@ -225,3 +227,9 @@ class PeopleModel(mesa.Model):
     def step(self):
         self.schedule.step()
         self.datacollector.collect(self)
+        self.step_num+=1
+        if(self.step_num %10 ==1):
+            self.output_csv("/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result.csv")
+    def output_csv(self,path):
+        result = self.datacollector.get_model_vars_dataframe()
+        result.to_csv(path)

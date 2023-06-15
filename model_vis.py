@@ -1,5 +1,5 @@
 import mesa
-
+from threading import Thread
 import peoplemodel_zz,peoplemodel_random
 
 
@@ -37,6 +37,14 @@ server = mesa.visualization.ModularServer(
     peoplemodel_random.PeopleModel, [grid,chart,chart_1], "Money Model", {"N": 200, "width": 30, "height": 30}
 )
 
+def listen_to_dump(server):
+    print(server.model.step_num)
+    if(server.model.step_num%10==1):
+        server.model.output_csv(path="/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result.csv")
+
+
 
 server.port = 8521  # The default
 server.launch()
+t = Thread(target=listen_to_dump, args=[server])
+t.run()
