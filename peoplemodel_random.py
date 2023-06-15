@@ -141,8 +141,8 @@ class PeopleModel(mesa.Model):
 
     def __init__(self,N,width,height):
         self.num_agents = N
-        self.grid = mesa.space.SingleGrid(width,height,True)
-        #self.grid = mesa.space.MultiGrid(width, height, True)
+        #self.grid = mesa.space.SingleGrid(width,height,True)
+        self.grid = mesa.space.MultiGrid(width, height, True)
         self.schedule = mesa.time.RandomActivation(self)
         self.init_agent()
     def init_agent(self):
