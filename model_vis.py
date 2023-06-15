@@ -18,7 +18,10 @@ def agent_portrayal(agent):
     else:
         portrayal["Color"] = "grey"
         portrayal["Layer"] = 1
-    if(agent.social>0.05):
+
+    if(agent.social>1):
+        portrayal["r"] = 1
+    elif(agent.social>0.05):
         portrayal["r"] = agent.social
     else:
         portrayal["r"] = 0.05
