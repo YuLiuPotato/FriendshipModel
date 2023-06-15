@@ -1,6 +1,25 @@
 import mesa
 import random
+from statistics import mean
 import numpy as np
+
+
+def count_make_friend(model):  # counts how many agents chooses make friend strategy in a round
+    make_friend_list = [i.make_friend for i in model.schedule.agents]
+    make_friend_yes_counts = len([i for i in make_friend_list if i == 1])
+    return make_friend_yes_counts
+
+
+def average_utility(model):  # calculate the average utility of each agent in a round
+    every_utility_list = [i.agent_utility for i in model.schedule.agents]
+    average_utility = mean(every_utility_list)
+    return average_utility
+
+
+def average_social(model):  # calculate the average social of each agent in a round
+    every_social_list = [i.social for i in model.schedule.agents]
+    average_social = mean(every_social_list)
+    return average_social
 
 
 class Payoff_f():
@@ -38,7 +57,9 @@ class PeopleAgent(mesa.Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
         self.social = random.random()  # social preference of other-regarding or self-regarding, randomly distributed between 0-1
-        self.make_friend = 0  # the actual behavior [0,1] isolated vs outgoing. Assuming at the beginning everyone is isolated.
+        # self.social = 0.5
+        # self.make_friend = 0  # the actual behavior [0,1] isolated vs outgoing. Assuming at the beginning everyone is isolated.
+        self.make_friend = random.choice([0,1])  # the actual behavior [0,1] isolated vs outgoing. Assuming at the beginning everyone is isolated.
         self.payoff_f = Payoff_f()
 
     def payoff(self):
@@ -87,6 +108,7 @@ class PeopleAgent(mesa.Agent):
             total_utility_of_the_agent = alternative_total_utility_of_the_agent
         else:
             pass
+        self.agent_utility = total_utility_of_the_agent
         return {self.unique_id: [total_utility_of_the_agent, self.social, self.make_friend]}
         # # print (self.pos, self.make_friend)
 
@@ -104,7 +126,8 @@ class PeopleAgent(mesa.Agent):
             self.model.grid.move_agent(self, new_position)
 
     def change_social(self):
-        self.social = self.social + random.choice([-0.05, 0.05])  # change other-regarding social preference randomly plus or minus 0.05
+        self.social = self.social + random.choice(
+            [-0.1, 0.1])  # change other-regarding social preference randomly plus or minus 0.1
         # self.social = self.social + 0.05  # change other-regarding social preference by increasing 0.05
         # self.social = self.social - 0.05  # change other-regarding social preference by decreasing 0.05
         return
@@ -137,6 +160,11 @@ class PeopleModel(mesa.Model):
             self.schedule.add(a)
             self.grid.place_agent(a, self.grid.find_empty())  # Good change Yu :)
 
+        self.datacollector = mesa.DataCollector(
+            model_reporters={"average_utility": average_utility, "average_social": average_social,
+                             "count_make_friend": count_make_friend},
+            agent_reporters={"utility": "agent_utility", "social": "social", "make_friend": "make_friend"})
+
     def agents_info(self, new_agent_info):
         self.all_agents_info.update(new_agent_info)
 
@@ -145,5 +173,6 @@ class PeopleModel(mesa.Model):
 
     def step(self):
         self.schedule.step()
+        self.datacollector.collect(self)
         self.agents_chosen = list((dict(sorted(self.all_agents_info.items(), key=lambda item: item[1][0]))))[
                              :5]  # identify the id of 5 agents with the lowest utility values
