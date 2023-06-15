@@ -14,11 +14,15 @@ def agent_portrayal(agent):
     else:
         portrayal["Color"] = "grey"
         portrayal["Layer"] = 1
-    portrayal["r"] = agent.social
+    if(agent.social>0.01):
+        portrayal["r"] = agent.social
+    else:
+        portrayal["r"] = 0.01
+    #portrayal['text'] = agent.unique_id
     return portrayal
 
 
-grid = mesa.visualization.CanvasGrid(agent_portrayal, 30, 30, 600, 600)
+grid = mesa.visualization.CanvasGrid(agent_portrayal, 30, 30, 500, 500)
 server = mesa.visualization.ModularServer(
     PeopleModel, [grid], "Money Model", {"N": 200, "width": 30, "height": 30}
 )

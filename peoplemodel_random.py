@@ -21,6 +21,15 @@ class Payoff_f():
         self.R = R
         self.P = P
         self.S = S
+class Monte_Carlo():
+    def __init__(self,seed =0):
+        self._random = random
+        self._random.seed(seed)
+    def __call__(self, x):
+        if(self._random.random()>x):
+            return 1
+        else:
+            return 0
 class PeopleAgent(mesa.Agent):
     """An agent with fixed initial wealth."""
 
@@ -33,6 +42,7 @@ class PeopleAgent(mesa.Agent):
         self.payoff_f = Payoff_f()
         self.friendship = {} # this is the friends list
         self.potential_friendship ={}
+        self.monte_carlo = Monte_Carlo()
 
         '''
         T = 1.5 # temptation
@@ -108,23 +118,39 @@ class PeopleAgent(mesa.Agent):
 
     def step(self):
         self.payoff() # update the behavior
-
-
         #print(min(self.utility_social, self.utility_not_social))
         if(min(self.utility_social,self.utility_not_social)<4):
-            self.move()
+            if self.monte_carlo(0.2):
+                self.move()
             self.change_social("Hurt")
         else:
+            if self.monte_carlo(0.8):
+                self.move()
             if(self.make_friend ==1):
                 self.update_friendship()
     ## move the agent to random place
     def move(self):
         possible_space = self.model.grid.get_neighborhood(self.pos,moore=True,include_center=False)
-        new_position = self.random.choice(possible_space)
+        empty = [i for i in possible_space if self.model.grid.is_cell_empty(i)]
+        if isinstance(self.model.grid, mesa.space.SingleGrid):
+            if len(empty) != 0:
+                new_position = self.random.choice(empty)
+                self.model.grid.move_agent(self, new_position)
+            else:
+                # if one fail to move, he become unfriendly/ he accumulate bias
+                self.social-=0.02
+        elif isinstance(self.model.grid, mesa.space.SingleGrid):
+            new_position = self.random.choice(possible_space)
+            self.model.grid.move_agent(self, new_position)
+
         # try if it is not empty for singleGrid
+        '''
         while not self.model.grid.is_cell_empty(new_position) and isinstance(self.model.grid, mesa.space.SingleGrid):
             new_position = self.random.choice(possible_space)
-        self.model.grid.move_agent(self,new_position)
+            print(new_position)
+        '''
+
+
     ##TODO: what happen if he is unhappy
     def change_social(self,mode):
         if(mode =="No_change"):
@@ -136,13 +162,13 @@ class PeopleAgent(mesa.Agent):
             if(self.make_friend >0.5):
                 self.social -= 0.05
             else:
-                self.social +=0.05
+                self.social +=0.03
 class PeopleModel(mesa.Model):
 
     def __init__(self,N,width,height):
         self.num_agents = N
-        #self.grid = mesa.space.SingleGrid(width,height,True)
-        self.grid = mesa.space.MultiGrid(width, height, True)
+        self.grid = mesa.space.SingleGrid(width,height,True)
+        #self.grid = mesa.space.MultiGrid(width, height, True)
         self.schedule = mesa.time.RandomActivation(self)
         self.init_agent()
     def init_agent(self):
