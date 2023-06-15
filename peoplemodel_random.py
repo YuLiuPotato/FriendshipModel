@@ -1,12 +1,38 @@
 import mesa
 import random
 import numpy as np
+import pandas as pd
 from itertools import islice
+from statistics import mean
+from enum import Enum
+
 
 def take(n, iterable):
     """Return the first n items of the iterable as a list."""
     return list(islice(iterable, n))
+def count_make_friend(model):  # counts how many agents chooses make friend strategy in a round
+    make_friend_list = [i.make_friend for i in model.schedule.agents]
+    make_friend_yes_counts = len([i for i in make_friend_list if i == 1])
+    return make_friend_yes_counts
 
+
+def average_social_utility(model):  # calculate the average utility of each agent in a round
+    every_utility_list = [i.utility_social for i in model.schedule.agents]
+    average_utility = mean(every_utility_list)
+    return average_utility
+def average_non_soc_utility(model):  # calculate the average utility of each agent in a round
+    every_utility_list = [i.utility_not_social for i in model.schedule.agents]
+    average_utility = mean(every_utility_list)
+    return average_utility
+
+
+def average_social(model):  # calculate the average social of each agent in a round
+    every_social_list = [i.social for i in model.schedule.agents]
+    average_social = mean(every_social_list)
+    return average_social
+def friendship(model):
+    friendship_bet = [i.friendship for i in model.schedule.agents]
+    return average_social
 class Payoff_f():
     def __init__(self,_T=1.5,_R=1.1,_P=0.8,_S=0.5):
         self.init(_T, _R, _P, _S)
@@ -24,12 +50,24 @@ class Payoff_f():
 class Monte_Carlo():
     def __init__(self,seed =0):
         self._random = random
-        self._random.seed(seed)
+        #self._random.seed(seed)
     def __call__(self, x):
         if(self._random.random()>x):
             return 1
         else:
             return 0
+# configurator the parameter inside the file
+class configurator():
+    def __init__(self):
+        self.init()
+    def init(self):
+        self.social_initial =0.2 # initial value of social
+        self.payoff = Payoff_f() #initial payoff function
+        self.level_of_hurt =4 # utilization boundary for bahavior change
+        self.unhappy_move_barrier = 0.05
+        self.happy_move_barrier = 0.8
+        self.makefriend_hurt = 0.05
+        self.alone_hurt = 0.03
 class PeopleAgent(mesa.Agent):
     """An agent with fixed initial wealth."""
 
@@ -39,6 +77,7 @@ class PeopleAgent(mesa.Agent):
         self.make_friend = 1 # the actural behavior [0,1] isolated vs outgoing
         self.utility_social = 0 #
         self.utility_not_social = 0 #
+        self.bias =0 # bad mood / good mod affect his utilization
         self.payoff_f = Payoff_f()
         self.friendship = {} # this is the friends list
         self.potential_friendship ={}
@@ -120,7 +159,7 @@ class PeopleAgent(mesa.Agent):
         self.payoff() # update the behavior
         #print(min(self.utility_social, self.utility_not_social))
         if(min(self.utility_social,self.utility_not_social)<4):
-            if self.monte_carlo(0.2):
+            if self.monte_carlo(0.05):
                 self.move()
             self.change_social("Hurt")
         else:
@@ -171,10 +210,18 @@ class PeopleModel(mesa.Model):
         #self.grid = mesa.space.MultiGrid(width, height, True)
         self.schedule = mesa.time.RandomActivation(self)
         self.init_agent()
+        self.datacollector = mesa.DataCollector(
+            model_reporters={"average_social_utility": average_social_utility, "average_non_soc_utility":average_non_soc_utility,
+                             "average_social": average_social,"count_make_friend": count_make_friend},
+            agent_reporters={"utility_not_social": "utility_not_social","utility_social": "utility_social" ,
+                             "social": "social", "make_friend": "make_friend"},
+            tables = {"friend_net":["unique_id","friendship"]}
+        )
     def init_agent(self):
         for i in range(self.num_agents):
             a = PeopleAgent(i,self)
             self.schedule.add(a)
-            self.grid.place_agent(a,self.grid.find_empty()) # find a empty cell
+            self.grid.place_agent(a, self.grid.find_empty()) # find a empty cell
     def step(self):
         self.schedule.step()
+        self.datacollector.collect(self)
