@@ -36,8 +36,11 @@ chart = mesa.visualization.ChartModule([{"Label": "average_social",
 chart_1 = mesa.visualization.ChartModule([{"Label": "count_make_friend",
                       "Color": "Black"}],
                     data_collector_name='datacollector')
+chart_2 = mesa.visualization.ChartModule([{"Label": "bias",
+                      "Color": "Black"}],
+                    data_collector_name='datacollector')
 server = mesa.visualization.ModularServer(
-    peoplemodel_random.PeopleModel, [grid,chart,chart_1], "Money Model", {"N": 200, "width": 30, "height": 30}
+    peoplemodel_random.PeopleModel, [grid,chart,chart_1,chart_2], "Money Model", {"N": 200, "width": 30, "height": 30}
 )
 
 def listen_to_dump(server):

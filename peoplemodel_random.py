@@ -20,6 +20,10 @@ def average_social_utility(model):  # calculate the average utility of each agen
     every_utility_list = [i.utility_social for i in model.schedule.agents]
     average_utility = mean(every_utility_list)
     return average_utility
+def average_bias_utility(model):  # calculate the average utility of each agent in a round
+    every_utility_list = [i.bias for i in model.schedule.agents]
+    average_utility = mean(every_utility_list)
+    return average_utility
 def average_non_soc_utility(model):  # calculate the average utility of each agent in a round
     every_utility_list = [i.utility_not_social for i in model.schedule.agents]
     average_utility = mean(every_utility_list)
@@ -78,7 +82,7 @@ class PeopleAgent(mesa.Agent):
         self.utility_social = 0 #
         self.utility_not_social = 0 #
         self.bias =0 # bad mood / good mod affect his utilization
-        self.threshold_of_hurt =4
+        self.threshold_of_hurt =2
         self.payoff_f = Payoff_f()
         self.friendship = {} # this is the friends list
         self.potential_friendship ={}
@@ -126,9 +130,13 @@ class PeopleAgent(mesa.Agent):
                 return
         _utility_not_social =0
         _utility_social =0
+        '''
         if(len(self.internet_friends)>0):
             for x in self.internet_friends:
                 cellmates.append(x)
+        print(f'cellmates length: {len(cellmates)}')
+        '''
+
         for i in cellmates:
             #social_preference_to_i = np.random.choice((social,nonsocial),(self.wealth,1-self.wealth))
             #doesn't work
@@ -146,7 +154,19 @@ class PeopleAgent(mesa.Agent):
             else:
                 _utility_not_social += (1 - self.social) * self.payoff_f.P + self.social * self.payoff_f.P
                 _utility_social += (1 - self.social) * self.payoff_f.S + self.social * self.payoff_f.T
+        for i in self.internet_friends:
+            if(self.friendship.get(str(i.unique_id)) is not None):
+                self.payoff_f.init()
+                self.payoff_f.friend_change(self.friendship.get(str(i.unique_id))/2) # 1/2 of change
 
+            if(i.make_friend ==1):
+                _utility_not_social += (1-self.social)*self.payoff_f.T + self.social * self.payoff_f.S
+                _utility_social_single = (1-self.social)*self.payoff_f.R + self.social * self.payoff_f.R
+                _utility_social +=  _utility_social_single
+                self.potential_friendship[str(i.unique_id)] =  _utility_social_single
+            else:
+                _utility_not_social += (1 - self.social) * self.payoff_f.P + self.social * self.payoff_f.P
+                _utility_social += (1 - self.social) * self.payoff_f.S + self.social * self.payoff_f.T
         self.utility_social = _utility_social +self.bias
         self.utility_not_social = _utility_not_social -self.bias
         # update the behavior
@@ -234,7 +254,7 @@ class PeopleModel(mesa.Model):
         self.step_num = 0
         self.datacollector = mesa.DataCollector(
             model_reporters={"average_social_utility": average_social_utility, "average_non_soc_utility":average_non_soc_utility,
-                             "average_social": average_social,"count_make_friend": count_make_friend},
+                             "average_social": average_social,"count_make_friend": count_make_friend,"bias":average_bias_utility},
             agent_reporters={"utility_not_social": "utility_not_social","utility_social": "utility_social" ,
                              "social": "social", "make_friend": "make_friend"},
             tables = {"friend_net":["unique_id","friendship"]}
@@ -248,8 +268,8 @@ class PeopleModel(mesa.Model):
         self.schedule.step()
         self.datacollector.collect(self)
         self.step_num+=1
-        self.output_csv(0,"/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result_model.csv")
-        self.output_csv(1,"/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result_agent.csv")
+        self.output_csv(0,"/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result_agent.csv")
+        self.output_csv(1,"/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result_model.csv")
         self.output_csv(2,"/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result_table.csv")
     def output_csv(self,data,path):
         #result = self.datacollector.get_model_vars_dataframe()
