@@ -290,7 +290,7 @@ class PeopleModel(mesa.Model):
         self.datacollector.collect(self)
         self.step_num+=1
         self.output_csv(0, "/result_agent_model.csv")
-        self.output_csv(1, "/result_model_model.csv")
+        self.output_csv(1,"/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result_model.csv")
         self.output_csv(2,"/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result_table.csv")
     def output_csv(self,data,path):
         #result = self.datacollector.get_model_vars_dataframe()
