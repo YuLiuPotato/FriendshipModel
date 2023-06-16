@@ -45,7 +45,7 @@ class Payoff_f():
         self.T += value/2*random.random()
         self.R += value/2*random.random()
         self.P += value/4*random.random()
-        self.S -= value/4
+        self.S -= value*5/4
     def init(self,T=1.5,R=1.1,P=0.8,S=0.5):
         self.T = T
         self.R = R
@@ -61,33 +61,35 @@ class Monte_Carlo():
         else:
             return 0
 # configurator the parameter inside the file
-class configurator():
+class Configurator():
     def __init__(self):
         self.init()
     def init(self):
         self.social_initial =0.2 # initial value of social
         self.payoff = Payoff_f() #initial payoff function
-        self.level_of_hurt =4 # utilization boundary for bahavior change
+        self.level_of_hurt =6 # utilization boundary for bahavior change
         self.unhappy_move_barrier = 0.05
         self.happy_move_barrier = 0.8
         self.makefriend_hurt = 0.05
         self.alone_hurt = 0.03
+        self.thershold_hurt= 2
 class PeopleAgent(mesa.Agent):
     """An agent with fixed initial wealth."""
 
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
-        self.social = 0.2  # scoial preference s, the initial value is 0.5 or 50% probability of being social or non-social
-        self.make_friend = 1 # the actural behavior [0,1] isolated vs outgoing
+        self.social = 0.5*random.random()  # scoial preference s, the initial value is 0.5 or 50% probability of being social or non-social
+        self.make_friend = random.randint(0,1) # the actural behavior [0,1] isolated vs outgoing
         self.utility_social = 0 #
         self.utility_not_social = 0 #
         self.bias =0 # bad mood / good mod affect his utilization
-        self.threshold_of_hurt =2
+        self.threshold_of_hurt =4
         self.payoff_f = Payoff_f()
         self.friendship = {} # this is the friends list
         self.potential_friendship ={}
         self.internet_friends =[]
         self.monte_carlo = Monte_Carlo()
+        self.configurator = Configurator()
 
         '''
         T = 1.5 # temptation
@@ -163,17 +165,25 @@ class PeopleAgent(mesa.Agent):
                 _utility_not_social += (1-self.social)*self.payoff_f.T + self.social * self.payoff_f.S
                 _utility_social_single = (1-self.social)*self.payoff_f.R + self.social * self.payoff_f.R
                 _utility_social +=  _utility_social_single
-                self.potential_friendship[str(i.unique_id)] =  _utility_social_single
+                if(len(self.potential_friendship)<15):
+                    self.potential_friendship[str(i.unique_id)] =  _utility_social_single
             else:
                 _utility_not_social += (1 - self.social) * self.payoff_f.P + self.social * self.payoff_f.P
                 _utility_social += (1 - self.social) * self.payoff_f.S + self.social * self.payoff_f.T
-        self.utility_social = _utility_social +self.bias
-        self.utility_not_social = _utility_not_social -self.bias
+        self.utility_social = _utility_social +5*self.bias*random.random()
+        self.utility_not_social = _utility_not_social -5*self.bias*random.random()
         # update the behavior
         if(self.utility_social>self.utility_not_social):
+            if(self.monte_carlo(0.2)):
+                self.make_friend = 1
+            else:
+                self.make_friend = 0
             self.make_friend = 1
-        elif (self.utility_social<self.utility_not_social):
-            self.make_friend = 0
+        elif (self.utility_social<self.utility_not_social ):
+            if(self.monte_carlo(0.2)):
+                self.make_friend = 0
+            else:
+                self.make_friend = 1
         else:
             self.make_friend = random.randint(0, 1)
 
@@ -184,30 +194,38 @@ class PeopleAgent(mesa.Agent):
         list = []
         for i in self.internet_friends:
             id = str(i.unique_id)
-            if(self.friendship[id] > 1):
+            if(friendship_temp[id] > 1):
                 list.append(i)
+            if(len(list)>8):
+                break
         self.internet_friends = list
 
 
     def step(self):
         self.payoff() # update the behavior
+        bias_level = 5
+        bias_memory = 0.5
         #print(min(self.utility_social, self.utility_not_social))
-        if(max(self.utility_social,self.utility_not_social)<self.threshold_of_hurt):
+        max_uti = max(self.utility_social,self.utility_not_social)
+        max_uti_diff = max_uti - self.threshold_of_hurt
+        if(max_uti<self.threshold_of_hurt):
             if self.monte_carlo(0.05):
                 self.move()
             self.change_social("Hurt")
             if(self.make_friend==1):
-                self.bias -=0.05
+                self.bias =(bias_memory+0.1)*self.bias+ self.monte_carlo(0.2) *bias_level* max_uti_diff * 0.1 * (random.random() - 0.25)
             else:
-                self.bias +=0.05
+                self.bias =(bias_memory+0.1)*self.bias -self.monte_carlo(0.2) *bias_level* max_uti_diff * 0.1 * (random.random() - 0.25)
+
         else:
             if self.monte_carlo(0.8):
                 self.move()
             if(self.make_friend ==1):
                 self.update_friendship()
-                self.bias += 0.01
+                self.bias = (bias_memory)*self.bias+ self.monte_carlo(0.8)*bias_level*max_uti_diff*(random.random()-0.25)
             else:
-                self.bias -=0.01
+                self.bias = (bias_memory)*self.bias- self.monte_carlo(0.8)*bias_level*max_uti_diff*(random.random()-0.25)
+        self.threshold_of_hurt = 0.2*self.threshold_of_hurt+ max(self.utility_social,self.utility_not_social)
     ## move the agent to random place
     def move(self):
         possible_space = self.model.grid.get_neighborhood(self.pos,moore=True,include_center=False)
@@ -218,7 +236,8 @@ class PeopleAgent(mesa.Agent):
                 self.model.grid.move_agent(self, new_position)
             else:
                 # if one fail to move, he become unfriendly/ he accumulate bias
-                self.social-=0.02
+                #self.social-=0.02
+                self.bias -= 0.05
         elif isinstance(self.model.grid, mesa.space.MultiGrid):
             new_position = self.random.choice(possible_space)
             self.model.grid.move_agent(self, new_position)
@@ -240,15 +259,15 @@ class PeopleAgent(mesa.Agent):
         # people got negative reward
         elif(mode =="Hurt"):
             if(self.make_friend >0.5):
-                self.social -= 0.05
+                self.social -= 0.3
             else:
-                self.social +=0.03
+                self.social +=0.2
 class PeopleModel(mesa.Model):
 
     def __init__(self,N,width,height):
         self.num_agents = N
-        #self.grid = mesa.space.SingleGrid(width,height,True)
-        self.grid = mesa.space.MultiGrid(width, height, True)
+        self.grid = mesa.space.SingleGrid(width,height,True)
+        #self.grid = mesa.space.MultiGrid(width, height, True)
         self.schedule = mesa.time.RandomActivation(self)
         self.init_agent()
         self.step_num = 0
@@ -256,8 +275,10 @@ class PeopleModel(mesa.Model):
             model_reporters={"average_social_utility": average_social_utility, "average_non_soc_utility":average_non_soc_utility,
                              "average_social": average_social,"count_make_friend": count_make_friend,"bias":average_bias_utility},
             agent_reporters={"utility_not_social": "utility_not_social","utility_social": "utility_social" ,
-                             "social": "social", "make_friend": "make_friend"},
-            tables = {"friend_net":["unique_id","friendship"]}
+                             "social": lambda m:m.social, "make_friend": "make_friend","friendship_people":lambda m: [float(i) for i in m.friendship.keys()],"friendship_value":lambda m: [float(i) for i in m.friendship.values()],
+                             "bias":"bias","threshold":"threshold_of_hurt" },
+
+            tables = {"friend_net":["unique_id"]}
         )
     def init_agent(self):
         for i in range(self.num_agents):
@@ -268,8 +289,8 @@ class PeopleModel(mesa.Model):
         self.schedule.step()
         self.datacollector.collect(self)
         self.step_num+=1
-        self.output_csv(0,"/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result_agent.csv")
-        self.output_csv(1,"/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result_model.csv")
+        self.output_csv(0, "/result_agent_model.csv")
+        self.output_csv(1, "/result_model_model.csv")
         self.output_csv(2,"/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result_table.csv")
     def output_csv(self,data,path):
         #result = self.datacollector.get_model_vars_dataframe()

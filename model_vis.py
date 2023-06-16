@@ -11,8 +11,8 @@ def agent_portrayal(agent):
         "Color": "red",
         "r": 0.5,
     }
-    if agent.utility_social > agent.utility_not_social :
-    #if agent.make_friend ==1:
+    #if agent.utility_social > agent.utility_not_social :
+    if agent.make_friend ==1:
         portrayal["Color"] = "red"
         portrayal["Layer"] = 0
     else:
