@@ -194,7 +194,7 @@ class PeopleAgent(mesa.Agent):
         list = []
         for i in self.internet_friends:
             id = str(i.unique_id)
-            if(friendship_temp[id] > 1):
+            if(friendship_temp[id] > 1.3):
                 list.append(i)
             if(len(list)>8):
                 break
