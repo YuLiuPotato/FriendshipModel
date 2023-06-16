@@ -164,7 +164,7 @@ class PeopleAgent(mesa.Agent):
         list = []
         for i in self.internet_friends:
             id = str(i.unique_id)
-            if(friendship_temp[id] > 1):
+            if(self.friendship[id] > 1):
                 list.append(i)
         self.internet_friends = list
 
@@ -237,7 +237,7 @@ class PeopleModel(mesa.Model):
                              "average_social": average_social,"count_make_friend": count_make_friend},
             agent_reporters={"utility_not_social": "utility_not_social","utility_social": "utility_social" ,
                              "social": "social", "make_friend": "make_friend"},
-            #tables = {"friend_net":["unique_id","friendship"]}
+            tables = {"friend_net":["unique_id","friendship"]}
         )
     def init_agent(self):
         for i in range(self.num_agents):
@@ -248,8 +248,15 @@ class PeopleModel(mesa.Model):
         self.schedule.step()
         self.datacollector.collect(self)
         self.step_num+=1
-        self.output_csv("/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result.csv")
-    def output_csv(self,path):
+        self.output_csv(0,"/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result_model.csv")
+        self.output_csv(1,"/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result_agent.csv")
+        self.output_csv(2,"/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result_table.csv")
+    def output_csv(self,data,path):
         #result = self.datacollector.get_model_vars_dataframe()
-        result = self.datacollector.get_agent_vars_dataframe()
+        if(data==0):
+            result = self.datacollector.get_agent_vars_dataframe()
+        elif(data==1):
+            result = self.datacollector.get_model_vars_dataframe()
+        else:
+            result = self.datacollector.get_table_dataframe("friend_net")
         result.to_csv(path)
