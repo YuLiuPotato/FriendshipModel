@@ -51,7 +51,7 @@ class Analyzer():
         #nx.draw_networkx_edges(G.subgraph(['30','50']), pos, arrowstyle='->', arrowsize=1)
 
         # Add labels to the edges with weights
-        #labels = nx.get_edge_attributes(G, 'weight')
+        labels = nx.get_edge_attributes(G, 'weight')
         #nx.draw_networkx_edge_labels(G, pos, edge_labels=labels,font_size=2)
         nodes =[30,50]
         neighbors_30 = G.neighbors(nodes[0])
@@ -64,27 +64,30 @@ class Analyzer():
 
         subgraph_nodes = nodes
         subgraph = G.subgraph(subgraph_nodes)
+        labels = nx.get_edge_attributes(subgraph, 'weight')
         # Draw node labels
         #nx.draw_networkx_labels(G, pos, font_size=12, font_color='black')
-        nx.draw(subgraph, with_labels=True, node_color='lightblue', node_size=500, edge_color='gray')
+        #nx.draw(subgraph, with_labels=True, node_color='lightblue', node_size=500, edge_color='gray')
         # Display the graph
-        plt.axis('off')
-        plt.savefig('graph/' +"30_50_steps_"+ str(step) + ".png")
+        #plt.axis('off')
+        #plt.savefig('graph/' +"30_50_steps_"+ str(step) + ".png")
         #plt.show()
         #plt.savefig('graph/'+str(step)+"steps_30_50.png")
-        plt.clf()
+        #plt.clf()
 
         num_nodes = G.number_of_nodes()
         num_edges = G.number_of_edges()
         average_degree = sum(dict(G.degree()).values()) / num_nodes
 #        average_shortest_path_length = nx.average_shortest_path_length(G)
-        clustering_coefficient = nx.average_clustering(G)
+        node_cluster_coefficients = nx.clustering(G.to_undirected())
+        average_cluster_coefficient = sum(node_cluster_coefficients.values()) / len(node_cluster_coefficients)
+       # clustering_coefficient = nx.average_clustering(G)
 
         print("Number of nodes:", num_nodes)
         print("Number of edges:", num_edges)
         print("Average degree:", average_degree)
         #print("Average shortest path length:", average_shortest_path_length)
-        print("Clustering coefficient:", clustering_coefficient)
+        print("Clustering coefficient:", average_cluster_coefficient)
 
         degrees = [G.degree(node) for node in G.nodes()]
         plt.hist(degrees, bins=range(min(degrees), max(degrees) + 2, 1), align='left', alpha=0.7, color='lightblue')
@@ -92,9 +95,17 @@ class Analyzer():
         plt.ylabel('Frequency')
         plt.title('Distribution of Edges')
         plt.xticks(range(min(degrees), max(degrees) + 1))
-        plt.savefig('graph/' +"steps_node_distribution_"+ str(step) + ".png")
-        #plt.show()
+        plt.savefig('graph/friend_ship_net/' +"steps_node_distribution_"+ str(step) + ".png")
+        plt.show()
         plt.clf()
+
+        weights = [d['weight'] for u, v, d in G.edges(data=True)]
+        plt.hist(weights,bins=100, edgecolor='black')
+        plt.xlabel('Weight')
+        plt.ylabel('Frequency')
+        #plt.xticks([1.0,1.2,1.4,1.6,1.8,2.0])
+        plt.title('Weighted Edges Distribution')
+        plt.show()
 
     def Plot(self,ID):
         filtered_names_ = self.df.loc[self.df['AgentID'] == ID]
@@ -149,6 +160,7 @@ class Analyzer():
         plt.show()
 a =Analyzer()
 a.load('/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result_agent_model.csv')
-#a.Plot('/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result_agent_model.csv')
-for i in range(5,100):
-    a.plot_network(i)
+a.Plot(60)
+a.plot_network(60)
+#for i in range(5,700):
+    #a.plot_network(i)

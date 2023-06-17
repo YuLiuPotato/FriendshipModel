@@ -114,10 +114,23 @@ class PeopleAgent(mesa.Agent):
     #     self.model.grid.move_agent(self, new_position)
 
     def payoff(self):
+        #to be modified. which is not true
         def no_cellmates(self):
-            self.utility_not_social = 0
-            self.utility_social =1
-            self.make_friend =1
+            self.utility_not_social *= 0.9
+            self.utility_social *=0.9
+            if (self.utility_social > self.utility_not_social):
+                if (self.monte_carlo(0.2)):
+                    self.make_friend = 1
+                else:
+                    self.make_friend = 0
+                self.make_friend = 1
+            elif (self.utility_social < self.utility_not_social):
+                if (self.monte_carlo(0.2)):
+                    self.make_friend = 0
+                else:
+                    self.make_friend = 1
+            else:
+                self.make_friend = random.randint(0, 1)
             return
         #compatability with multiGrid
         try:
@@ -143,33 +156,53 @@ class PeopleAgent(mesa.Agent):
             #social_preference_to_i = np.random.choice((social,nonsocial),(self.wealth,1-self.wealth))
             #doesn't work
             #change friendship
+            is_friend = False
             if(self.friendship.get(str(i.unique_id)) is not None):
                 self.payoff_f.init()
                 self.payoff_f.friend_change(self.friendship.get(str(i.unique_id)))
+                is_friend =True
 
             if(i.make_friend ==1):
                 _utility_not_social += (1-self.social)*self.payoff_f.T + self.social * self.payoff_f.S
                 _utility_social_single = (1-self.social)*self.payoff_f.R + self.social * self.payoff_f.R
                 _utility_social +=  _utility_social_single
-                self.potential_friendship[str(i.unique_id)] =  _utility_social_single
-                self.internet_friends.append(i)
+                if(i.social>0.5 or self.monte_carlo(i.social) ):
+                    self.potential_friendship[str(i.unique_id)] =  _utility_social_single
+                    if(len(i.internet_friends) != 0):
+                        i_friend = random.choice(i.internet_friends)
+                        self.internet_friends.append(i_friend) # take friends' friend
+                    self.internet_friends.append(i)
             else:
                 _utility_not_social += (1 - self.social) * self.payoff_f.P + self.social * self.payoff_f.P
                 _utility_social += (1 - self.social) * self.payoff_f.S + self.social * self.payoff_f.T
+                if(is_friend and self.monte_carlo(0.2) or i.social<0):
+                    self.potential_friendship[str(i.unique_id)] =  -1
+
         for i in self.internet_friends:
+            is_friend=False
+            friend_of_other = False
             if(self.friendship.get(str(i.unique_id)) is not None):
                 self.payoff_f.init()
                 self.payoff_f.friend_change(self.friendship.get(str(i.unique_id))/2) # 1/2 of change
+                is_friend = True
+            if(i.friendship.get(str(self.unique_id)) is not None):
+                #self.payoff_f.init()
+                self.payoff_f.friend_change(i.friendship.get(str(self.unique_id))/2) # 1/2 of change
+                friend_of_other = True
 
             if(i.make_friend ==1):
                 _utility_not_social += (1-self.social)*self.payoff_f.T + self.social * self.payoff_f.S
                 _utility_social_single = (1-self.social)*self.payoff_f.R + self.social * self.payoff_f.R
                 _utility_social +=  _utility_social_single
-                if(len(self.potential_friendship)<15):
-                    self.potential_friendship[str(i.unique_id)] =  _utility_social_single
+                #if(len(self.potential_friendship)<15):
+                #    self.potential_friendship[str(i.unique_id)] =  _utility_social_single
             else:
                 _utility_not_social += (1 - self.social) * self.payoff_f.P + self.social * self.payoff_f.P
                 _utility_social += (1 - self.social) * self.payoff_f.S + self.social * self.payoff_f.T
+                if(is_friend and self.monte_carlo(0.2) or i.social<0):
+                    self.potential_friendship[str(i.unique_id)] =  -1
+            if(is_friend and not friend_of_other):
+                self.potential_friendship[str(i.unique_id)] -= 0.2
         self.utility_social = _utility_social +5*self.bias*random.random()
         self.utility_not_social = _utility_not_social -5*self.bias*random.random()
         # update the behavior
@@ -190,21 +223,25 @@ class PeopleAgent(mesa.Agent):
     # take the 10 best friendship in list
     def update_friendship(self):
         friendship_temp = dict(sorted(self.potential_friendship.items(), key=lambda item: item[1],reverse=True))
-        self.friendship = dict(take(10,friendship_temp.items()))
+        self.friendship = dict([i for i in take(20,friendship_temp.items()) if i[1] >1])
+        #self.friendship = {}
         list = []
         for i in self.internet_friends:
             id = str(i.unique_id)
-            if(friendship_temp[id] > 1.3):
-                list.append(i)
-            if(len(list)>8):
-                break
+            fri_u = friendship_temp.get(id)
+            if(fri_u != None):
+                if(friendship_temp.get(id) > 1.3):
+                    list.append(i)
+                if(len(list)>15):
+                    break
+        #list =[]
         self.internet_friends = list
 
 
     def step(self):
         self.payoff() # update the behavior
         bias_level = 5
-        bias_memory = 0.5
+        bias_memory = 0.7
         #print(min(self.utility_social, self.utility_not_social))
         max_uti = max(self.utility_social,self.utility_not_social)
         max_uti_diff = max_uti - self.threshold_of_hurt
@@ -259,9 +296,9 @@ class PeopleAgent(mesa.Agent):
         # people got negative reward
         elif(mode =="Hurt"):
             if(self.make_friend >0.5):
-                self.social -= 0.3
+                self.social -= 0.1
             else:
-                self.social +=0.2
+                self.social +=0.05
 class PeopleModel(mesa.Model):
 
     def __init__(self,N,width,height):
@@ -289,7 +326,7 @@ class PeopleModel(mesa.Model):
         self.schedule.step()
         self.datacollector.collect(self)
         self.step_num+=1
-        self.output_csv(0, "/result_agent_model.csv")
+        self.output_csv(0, "/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result_agent_model.csv")
         self.output_csv(1,"/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result_model.csv")
         self.output_csv(2,"/Users/michael/Documents/ETh/Sem2/fpga for quantum engineering/FriendshipModel/result_table.csv")
     def output_csv(self,data,path):
